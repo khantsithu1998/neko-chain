@@ -4,6 +4,94 @@ A minimal, educational blockchain implementation built with Node.js. This projec
 
 **⚠️ This is NOT a production system. It's for learning only.**
 
+## 🏗️ Architecture
+
+```mermaid
+graph TB
+    subgraph Frontend["📱 Frontend (Next.js PWA)"]
+        Wallet[Wallet UI]
+        Send[Send Page]
+        Mine[Mine Page]
+        Explorer[Explorer]
+    end
+
+    subgraph Backend["🖥️ Backend Node"]
+        API[Express API]
+        BC[Blockchain]
+        Storage[(LevelDB)]
+        P2P[P2P Network]
+    end
+
+    subgraph Network["🌐 P2P Network"]
+        Node1[Node 3000]
+        Node2[Node 3001]
+        Node3[Node 3002]
+    end
+
+    Frontend -->|HTTP| API
+    API --> BC
+    BC --> Storage
+    API --> P2P
+    P2P <--> Node1
+    P2P <--> Node2
+    P2P <--> Node3
+```
+
+## ⛓️ Blockchain Structure
+
+```mermaid
+graph LR
+    subgraph Genesis["Block 0 (Genesis)"]
+        G_Hash["Hash: abc123..."]
+        G_Prev["Prev: 0"]
+        G_Tx["Tx: []"]
+    end
+
+    subgraph Block1["Block 1"]
+        B1_Hash["Hash: 0000def..."]
+        B1_Prev["Prev: abc123..."]
+        B1_Tx["Tx: Mining Reward"]
+    end
+
+    subgraph Block2["Block 2"]
+        B2_Hash["Hash: 0000ghi..."]
+        B2_Prev["Prev: 0000def..."]
+        B2_Tx["Tx: Transfer + Reward"]
+    end
+
+    Genesis -->|links to| Block1
+    Block1 -->|links to| Block2
+    Block2 -->|links to| More[...]
+```
+
+## 🔄 Transaction Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant Blockchain
+    participant P2P
+    participant Peers
+
+    User->>API: POST /transaction
+    API->>Blockchain: Validate & Add
+    Blockchain->>Blockchain: Check Balance
+    Blockchain->>Blockchain: Verify Signature
+    API->>P2P: Broadcast Transaction
+    P2P->>Peers: Send to all peers
+    API->>User: Transaction Added ✓
+    
+    Note over Blockchain: Transaction in Pending Pool
+    
+    User->>API: POST /mine
+    API->>Blockchain: Mine Block (PoW)
+    Blockchain->>Blockchain: Find Valid Hash
+    API->>P2P: Broadcast Block
+    P2P->>Peers: Send new block
+    API->>User: Block Mined ✓
+```
+
 ## 📁 Project Structure
 
 ```
@@ -11,13 +99,15 @@ neko-coin/
 ├── miner.js               # Auto-miner standalone script
 ├── package.json
 ├── README.md
+├── blockchain-data-*/     # LevelDB data (gitignored)
 ├── src/                   # Backend
 │   ├── index.js           # Express API server (P2P enabled)
 │   ├── blockchain.js      # Blockchain class (chain management)
 │   ├── block.js           # Block class (mining, hashing)
 │   ├── transaction.js     # Transaction class (signing)
 │   ├── wallet.js          # Wallet utilities (key pairs)
-│   └── p2p.js             # P2P networking module
+│   ├── p2p.js             # P2P networking module
+│   └── storage.js         # LevelDB persistent storage
 └── frontend/              # Next.js PWA wallet UI
     └── src/app/           # Pages (wallet, send, mine, explorer)
 ```
@@ -105,6 +195,32 @@ node miner.js YOUR_PUBLIC_KEY http://localhost:3000 http://localhost:3001
 - 💰 Earns 50 NEKO per block
 
 Press `Ctrl+C` to stop and see final statistics.
+
+---
+
+## 💾 LevelDB Storage
+
+Blockchain data is persisted to disk using LevelDB (same as Bitcoin).
+
+### Default Mode (Persistent)
+
+```bash
+node src/index.js 3000
+# Data saved to: blockchain-data-3000/
+```
+
+### In-Memory Mode (Testing)
+
+```bash
+node src/index.js 3000 --memory
+# Data lost on restart
+```
+
+### Features
+- ✅ Blockchain survives server restarts
+- ✅ Each node has its own database folder
+- ✅ Pending transactions are persisted
+- ✅ Automatic genesis block on first run
 
 ---
 
@@ -333,7 +449,7 @@ This is an **educational project**. For production use, you would need:
 
 | Feature | Current | Production Needed | Why? |
 |---------|---------|-------------------|------|
-| Data Storage | In-memory | Persistent database (LevelDB, PostgreSQL) | Data survives restarts; can't lose blockchain on crash |
+| Data Storage | ✅ **LevelDB** | - | Fast key-value store used by Bitcoin; data survives restarts |
 | Private Keys | localStorage | Hardware wallet / encrypted keystore | localStorage is readable by any JS; easily stolen |
 | API Authentication | None | JWT tokens, rate limiting | Prevent unauthorized access and spam attacks |
 | HTTPS | No | Yes, with SSL certificates | Prevent man-in-the-middle attacks on transactions |

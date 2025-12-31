@@ -39,17 +39,82 @@ const Transaction = require('./transaction');
 class Blockchain {
     /**
      * Create a new blockchain.
-     * Initializes with a genesis block.
+     * Initializes with a genesis block or loads from storage.
+     * 
+     * @param {Storage} storage - Optional storage instance for persistence
      */
-    constructor() {
-        this.chain = [this.createGenesisBlock()];  // Start with genesis block
-        this.pendingTransactions = [];              // Transactions waiting to be mined
-        this.difficulty = 4;                        // Mining difficulty (4 leading zeros)
-        this.miningReward = 50;                     // Coins awarded for mining a block
+    constructor(storage = null) {
+        this.chain = [];
+        this.pendingTransactions = [];
+        this.difficulty = 4;
+        this.miningReward = 50;
+        this.storage = storage;
+        this.initialized = false;
+    }
 
+    /**
+     * Initialize the blockchain.
+     * Loads from storage if available, otherwise creates genesis block.
+     */
+    async initialize() {
+        if (this.initialized) return;
+
+        if (this.storage) {
+            await this.storage.open();
+
+            // Check if we have existing data
+            if (await this.storage.isEmpty()) {
+                // No existing data, create genesis block
+                console.log('🌟 Creating Genesis Block...');
+                const genesis = this.createGenesisBlock();
+                this.chain = [genesis];
+                await this.storage.saveBlock(genesis);
+            } else {
+                // Load existing chain from storage
+                console.log('💾 Loading blockchain from disk...');
+                const chainData = await this.storage.loadChain();
+
+                if (chainData.length === 0) {
+                    // Storage corrupted or empty - recreate genesis
+                    console.log('⚠️  No blocks found, creating genesis...');
+                    const genesis = this.createGenesisBlock();
+                    this.chain = [genesis];
+                    await this.storage.saveBlock(genesis);
+                } else {
+                    this.chain = chainData.map(blockData => {
+                        const block = new Block(
+                            blockData.index,
+                            blockData.timestamp,
+                            blockData.transactions,
+                            blockData.previousHash
+                        );
+                        block.hash = blockData.hash;
+                        block.nonce = blockData.nonce;
+                        return block;
+                    });
+                }
+
+                // Load pending transactions
+                const pendingData = await this.storage.loadPendingTransactions();
+                this.pendingTransactions = pendingData.map(txData => {
+                    const tx = new Transaction(txData.senderAddress, txData.receiverAddress, txData.amount);
+                    tx.timestamp = txData.timestamp;
+                    tx.signature = txData.signature;
+                    return tx;
+                });
+            }
+        } else {
+            // In-memory mode (no persistence)
+            console.log('🌟 Creating Genesis Block...');
+            this.chain = [this.createGenesisBlock()];
+        }
+
+        this.initialized = true;
         console.log('🐱 Neko Coin Blockchain initialized!');
+        console.log(`   Chain length: ${this.chain.length} blocks`);
         console.log(`   Difficulty: ${this.difficulty} (hash must start with ${'0'.repeat(this.difficulty)})`);
         console.log(`   Mining Reward: ${this.miningReward} NEKO`);
+        console.log(`   Storage: ${this.storage ? 'LevelDB (persistent)' : 'In-memory (volatile)'}`);
     }
 
     /**
@@ -91,7 +156,7 @@ class Blockchain {
      * @param {Transaction} transaction - The transaction to add
      * @throws {Error} If transaction is invalid
      */
-    addTransaction(transaction) {
+    async addTransaction(transaction) {
         // Validate the transaction
         if (!transaction.senderAddress && transaction.senderAddress !== null) {
             throw new Error('Transaction must have a sender address');
@@ -117,6 +182,11 @@ class Blockchain {
         // Add to pending transactions pool
         this.pendingTransactions.push(transaction);
         console.log(`📝 Transaction added to pending pool: ${transaction.toString()}`);
+
+        // Save to persistent storage if available
+        if (this.storage) {
+            await this.storage.savePendingTransaction(transaction);
+        }
 
         return transaction;
     }
@@ -147,7 +217,7 @@ class Blockchain {
      * @param {string} minerAddress - Address to receive mining reward
      * @returns {Block} The newly mined block
      */
-    minePendingTransactions(minerAddress) {
+    async minePendingTransactions(minerAddress) {
         // Create the mining reward transaction
         // Notice: senderAddress is null - coins are created from nothing!
         const rewardTransaction = new Transaction(
@@ -173,6 +243,12 @@ class Blockchain {
         // Add the mined block to the chain
         this.chain.push(newBlock);
         console.log(`\n📦 Block ${newBlock.index} added to blockchain!`);
+
+        // Save to persistent storage if available
+        if (this.storage) {
+            await this.storage.saveBlock(newBlock);
+            await this.storage.clearPendingTransactions();
+        }
 
         // Clear pending transactions (they're now in the block)
         this.pendingTransactions = [];

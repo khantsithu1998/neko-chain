@@ -29,10 +29,14 @@ const express = require('express');
 const Blockchain = require('./blockchain');
 const Transaction = require('./transaction');
 const P2PNetwork = require('./p2p');
+const Storage = require('./storage');
 const { createWallet, getKeyPairFromPrivate } = require('./wallet');
 
 // Allow port to be specified via: node src/index.js 3001
 const PORT = process.argv[2] || process.env.PORT || 3000;
+
+// Check for in-memory mode flag: node src/index.js 3000 --memory
+const useMemory = process.argv.includes('--memory');
 
 // Initialize Express app
 const app = express();
@@ -49,8 +53,14 @@ app.use((req, res, next) => {
     next();
 });
 
-// Create a single blockchain instance (in-memory)
-const nekoCoin = new Blockchain();
+// Initialize storage (uses LevelDB by default, --memory for in-memory)
+const storage = useMemory ? null : new Storage(`./blockchain-data-${PORT}`);
+
+// Create blockchain instance with storage
+const nekoCoin = new Blockchain(storage);
+
+// Variable to track initialization status
+let initialized = false;
 
 // Initialize P2P network
 const p2pNetwork = new P2PNetwork(nekoCoin, PORT);
@@ -159,7 +169,7 @@ app.post('/transaction', async (req, res) => {
         transaction.signTransaction(senderPrivateKey);
 
         // Add to pending transactions (validates automatically)
-        nekoCoin.addTransaction(transaction);
+        await nekoCoin.addTransaction(transaction);
 
         // Broadcast to all peers
         await p2pNetwork.broadcastTransaction(transaction);
@@ -276,7 +286,7 @@ app.post('/mine', async (req, res) => {
         const startTime = Date.now();
 
         // Mine the block (this takes time due to Proof of Work)
-        const newBlock = nekoCoin.minePendingTransactions(minerAddress);
+        const newBlock = await nekoCoin.minePendingTransactions(minerAddress);
 
         const miningTime = (Date.now() - startTime) / 1000;
 
@@ -627,23 +637,37 @@ app.post('/seeds/remove', (req, res) => {
 // START SERVER
 // ========================================
 
-app.listen(PORT, () => {
-    console.log('\n========================================');
-    console.log('🐱 NEKO COIN BLOCKCHAIN (P2P ENABLED)');
-    console.log('========================================');
-    console.log(`🚀 Node running on http://localhost:${PORT}`);
-    console.log('\n📡 P2P Network Commands:');
-    console.log('  POST /peers/connect  - Connect to another node');
-    console.log('  POST /sync           - Sync chain with peers');
-    console.log('  GET  /peers          - List connected peers');
-    console.log('\n💰 Blockchain Commands:');
-    console.log('  POST /wallet/create  - Create new wallet');
-    console.log('  POST /transaction    - Send coins');
-    console.log('  POST /mine           - Mine a block');
-    console.log('  GET  /chain          - View blockchain');
-    console.log('  GET  /balance/:addr  - Check balance');
-    console.log('\n🎓 Educational blockchain for learning!');
-    console.log('========================================\n');
+async function startServer() {
+    // Initialize blockchain (loads from storage if available)
+    await nekoCoin.initialize();
+    initialized = true;
+
+    app.listen(PORT, () => {
+        console.log('\n========================================');
+        console.log('🐱 NEKO COIN BLOCKCHAIN (P2P ENABLED)');
+        console.log('========================================');
+        console.log(`🚀 Node running on http://localhost:${PORT}`);
+        console.log(`💾 Storage: ${storage ? 'LevelDB (persistent)' : 'In-memory (volatile)'}`);
+        console.log('\n📡 P2P Network Commands:');
+        console.log('  POST /peers/connect  - Connect to another node');
+        console.log('  POST /sync           - Sync chain with peers');
+        console.log('  GET  /peers          - List connected peers');
+        console.log('\n💰 Blockchain Commands:');
+        console.log('  POST /wallet/create  - Create new wallet');
+        console.log('  POST /transaction    - Send coins');
+        console.log('  POST /mine           - Mine a block');
+        console.log('  GET  /chain          - View blockchain');
+        console.log('  GET  /balance/:addr  - Check balance');
+        console.log('\n🎓 Educational blockchain for learning!');
+        console.log('========================================\n');
+    });
+}
+
+// Start the server
+startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
 });
 
 module.exports = { app, nekoCoin, p2pNetwork };
+
