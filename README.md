@@ -591,16 +591,16 @@ This is an **educational project**. For production use, you would need:
 
 ### 📊 Features to Add
 
-| Feature | Why Needed? |
-|---------|-------------|
-| **Transaction Fees** | Incentivize miners when block rewards decrease |
-| **Merkle Trees** | Verify transactions without downloading full blocks (SPV) |
-| **SPV Clients** | Light wallets for mobile devices with limited storage |
-| **Smart Contracts** | Programmable money for DeFi, NFTs, DAOs |
-| **Multi-sig Wallets** | Require multiple approvals for large transactions |
-| **HD Wallets** | Generate many addresses from one seed phrase |
-| **Difficulty Adjustment** | Keep block time consistent as hashrate changes |
-| **Halving Events** | Control inflation; create scarcity over time |
+| Feature | Status | Why Needed? |
+|---------|--------|-------------|
+| **Smart Contracts** | ✅ **Implemented** | Programmable money for DeFi, NFTs, DAOs |
+| **Transaction Fees** | ❌ | Incentivize miners when block rewards decrease |
+| **Merkle Trees** | ❌ | Verify transactions without downloading full blocks (SPV) |
+| **SPV Clients** | ❌ | Light wallets for mobile devices with limited storage |
+| **Multi-sig Wallets** | ❌ | Require multiple approvals for large transactions |
+| **HD Wallets** | ❌ | Generate many addresses from one seed phrase |
+| **Difficulty Adjustment** | ❌ | Keep block time consistent as hashrate changes |
+| **Halving Events** | ❌ | Control inflation; create scarcity over time |
 
 ### 🧪 Testing
 
