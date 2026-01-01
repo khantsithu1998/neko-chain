@@ -188,6 +188,23 @@ STOP
 | `/contracts` | GET | List all contracts |
 | `/contract/compile` | POST | Compile source to bytecode |
 
+### Neko Chain VM vs Ethereum EVM
+
+| Feature | Neko Chain VM | Ethereum EVM |
+|---------|---------------|--------------|
+| Architecture | Stack-based | Stack-based |
+| Word Size | JavaScript BigInt | 256-bit words |
+| Opcodes | ~30 | ~140 |
+| Gas Metering | ✅ Basic | ✅ Complex |
+| Storage | Map (LevelDB) | Patricia Merkle Trie |
+| Language | Simple assembly | Solidity, Vyper |
+| Compiler | Built-in | Separate (solc) |
+| Precompiles | ❌ | ✅ ECDSA, SHA256 |
+| Inter-contract calls | ❌ | ✅ CALL, DELEGATECALL |
+| Turing Complete | ✅ | ✅ |
+
+> **Note**: Neko Chain's VM is **educational** - simpler to understand while demonstrating core concepts. The EVM is production-grade with 10+ years of development.
+
 ---
 
 ## 🚀 Getting Started
