@@ -538,6 +538,79 @@ This is an **educational project**. For production use, you would need:
 
 ---
 
+## 💱 Exchange NEKO for Other Cryptocurrencies
+
+Once Neko Chain is production-ready, users can exchange NEKO for Bitcoin or other cryptocurrencies through several methods:
+
+### 1. Centralized Exchange (CEX)
+
+Like Binance, Coinbase, Kraken.
+
+```
+User deposits NEKO → Exchange → Trades NEKO for BTC → Withdraws BTC
+```
+
+| Pros | Cons |
+|------|------|
+| Easy to use | Requires KYC |
+| High liquidity | Custody risk |
+| Fiat on-ramp | Listing fees expensive |
+
+### 2. Decentralized Exchange (DEX)
+
+Like Uniswap, PancakeSwap, SushiSwap.
+
+```
+User connects wallet → DEX → Swaps NEKO for BTC (wrapped)
+```
+
+| Pros | Cons |
+|------|------|
+| No KYC | Need wrapped tokens |
+| Self-custody | Requires liquidity |
+| Permissionless | Smart contract risk |
+
+**Requirements for DEX:**
+- Deploy NEKO as ERC-20 on Ethereum (or similar)
+- Provide initial liquidity pool (NEKO/ETH or NEKO/WBTC)
+
+### 3. Atomic Swaps (Direct P2P)
+
+Trustless cross-chain swaps using Hash Time-Locked Contracts (HTLC).
+
+```
+Alice (NEKO) ←→ HTLC ←→ Bob (BTC)
+```
+
+| Pros | Cons |
+|------|------|
+| Fully trustless | Complex implementation |
+| No intermediary | Both chains need HTLC support |
+| Direct swap | Limited liquidity |
+
+### 4. Bridge to Major Chains
+
+Create wrapped version of NEKO on Ethereum/BSC.
+
+```mermaid
+graph LR
+    A[NEKO on Neko Chain] -->|Lock| B[Bridge Contract]
+    B -->|Mint| C[wNEKO on Ethereum]
+    C -->|Trade on DEX| D[ETH/BTC/USDT]
+```
+
+### Production Roadmap for Exchange
+
+| Step | Action |
+|------|--------|
+| 1 | Deploy NEKO as ERC-20 token |
+| 2 | Create bridge contract |
+| 3 | Add liquidity on Uniswap/SushiSwap |
+| 4 | Apply for CEX listings |
+| 5 | Implement atomic swaps (advanced) |
+
+---
+
 ## 📖 Further Reading
 
 - [Bitcoin Whitepaper](https://bitcoin.org/bitcoin.pdf)
@@ -546,8 +619,11 @@ This is an **educational project**. For production use, you would need:
 - [ECDSA Cryptography](https://en.wikipedia.org/wiki/Elliptic-curve_cryptography)
 - [Building a Blockchain (Naivecoin)](https://lhartikk.github.io/)
 - [libp2p Documentation](https://docs.libp2p.io/)
+- [Atomic Swaps Explained](https://academy.binance.com/en/articles/atomic-swaps-explained)
+- [How DEXs Work](https://ethereum.org/en/defi/)
 
 ---
 
 *Made with 🐱 for educational purposes*
+
 
